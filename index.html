@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>온라인 수어 사전</title>
+    <style>
+        /* 70~80년대 레트로 빈티지 감성의 색상과 스타일 적용 */
+        body {
+            font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+            background-color: #F4EAD5; /* 따뜻한 베이지 배경 */
+            color: #3E2723; /* 짙은 갈색 텍스트 */
+            margin: 0;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #D95C50; /* 빈티지 오렌지/레드 */
+            color: #FFF3E0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 4px 4px 0px #8C4A32; /* 레트로 느낌의 굵은 그림자 */
+            margin-bottom: 30px;
+        }
+
+        .search-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        #searchInput {
+            padding: 12px;
+            width: 60%;
+            max-width: 400px;
+            font-size: 16px;
+            border: 2px solid #8C4A32;
+            border-radius: 4px;
+            background-color: #FFF9C4; /* 연한 노란색 입력창 */
+        }
+
+        #searchBtn {
+            padding: 12px 20px;
+            font-size: 16px;
+            background-color: #4E6766; /* 빈티지 청록색 */
+            color: white;
+            border: 2px solid #2C3E3D;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #searchBtn:hover {
+            background-color: #3B504F;
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background-color: #FFFFFF;
+            border: 2px solid #8C4A32;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 4px 4px 0px #D7CCC8;
+        }
+
+        .card h3 {
+            margin-top: 0;
+            color: #D95C50;
+            border-bottom: 2px dashed #D7CCC8;
+            padding-bottom: 10px;
+        }
+
+        .badge {
+            background-color: #E0A96D;
+            color: #3E2723;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+
+        .sentence {
+            font-size: 15px;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        .media-links a {
+            display: inline-block;
+            margin-right: 10px;
+            color: #4E6766;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .media-links a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>온라인 수어 사전</h1>
+        <p>빠르고 정확하게 수어를 검색해 보세요</p>
+    </div>
+
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="검색할 표제어 또는 문장을 입력하세요...">
+        <button id="searchBtn">검색</button>
+    </div>
+
+    <div id="results" class="result-grid"></div>
+
+    <script src="data.js"></script>
+
+    <script>
+        const resultsContainer = document.getElementById('results');
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+
+        // 화면에 데이터를 그려주는 함수
+        function displayData(dataList) {
+            resultsContainer.innerHTML = ''; // 기존 결과를 지움
+
+            if (dataList.length === 0) {
+                resultsContainer.innerHTML = '<p>검색 결과가 없습니다.</p>';
+                return;
+            }
+
+            // 각 데이터마다 카드(네모 박스)를 만들어 화면에 추가
+            dataList.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'card';
+
+                card.innerHTML = `
+                    <div class="badge">${item.category || '구분 없음'}</div>
+                    <h3>${item.headword}</h3>
+                    <div class="sentence"><strong>예문:</strong> ${item.sentence || '예문 없음'}</div>
+                    <div class="media-links">
+                        ${item.videoUrl ? `<a href="${item.videoUrl}" target="_blank">🎥 수어 영상 보기</a>` : ''}
+                        ${item.handshapeImg ? `<a href="${item.handshapeImg}" target="_blank">✋ 수형 사진 보기</a>` : ''}
+                    </div>
+                `;
+                resultsContainer.appendChild(card);
+            });
+        }
+
+        // 초기 화면 로딩 시 데이터가 너무 많으면 브라우저가 멈출 수 있으므로 처음 50개만 보여줌
+        displayData(signLanguageData.slice(0, 50));
+
+        // 검색 버튼 클릭 시 실행되는 기능
+        searchBtn.addEventListener('click', () => {
+            const keyword = searchInput.value.trim();
+            
+            if (!keyword) {
+                // 검색어가 비어있으면 다시 처음 50개만 보여줌
+                displayData(signLanguageData.slice(0, 50));
+                return;
+            }
+
+            // 표제어나 예문에 검색어가 포함된 데이터만 걸러내기
+            const filteredData = signLanguageData.filter(item => 
+                (item.headword && item.headword.includes(keyword)) || 
+                (item.sentence && item.sentence.includes(keyword))
+            );
+
+            // 검색된 결과만 화면에 표시 (최대 100개까지만 제한하여 성능 보호)
+            displayData(filteredData.slice(0, 100));
+        });
+
+        // 엔터키를 쳐도 검색되도록 설정
+        searchInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                searchBtn.click();
+            }
+        });
+    </script>
+</body>
+</html>
